@@ -113,9 +113,9 @@ def createPolys(inOgr, options):
         # handle multi-polygons
         subgeom = []
         geomtype = geom.GetGeometryType()
-        if geomtype == ogr.wkbPolygon:
+        if geomtype == ogr.wkbPolygon or geomtype == ogr.wkbPolygon25D:
             subgeom = [geom]
-        elif geomtype == ogr.wkbMultiPolygon:
+        elif geomtype == ogr.wkbMultiPolygon or geomtype == ogr.wkbMultiPolygon25D:
             for k in range(geom.GetGeometryCount()):
                 subgeom.append(geom.GetGeometryRef(k))
 
