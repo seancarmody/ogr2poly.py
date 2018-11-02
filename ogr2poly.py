@@ -31,6 +31,7 @@ from optparse import OptionParser
 import logging
 import os
 import sys
+import re
 
 from osgeo import ogr
 from osgeo import osr
@@ -146,6 +147,64 @@ def createPolys(inOgr, options):
         f.close()
     return True
 
+def createOgr(inPoly, options):
+    logging.info("Opening OGR driver")
+
+    ringList = []
+
+    # Read poly
+    logging.info("Opening poly: '%s'" % inPoly)
+    f = open(inPoly, 'rt')
+    for row in f:
+        itemList = re.split("\s+", row.strip())
+        logging.info("itemList")
+        if(len(itemList) == 1):
+            s = itemList[0]
+            if(s.isdigit()):
+                logging.info("debug:decimal(maybe layer)")
+                currentRing = ogr.Geometry(ogr.wkbLinearRing)
+                ringList.append(currentRing)
+            else:
+                if(s == "END"):
+                    logging.info("debug:END line")
+                else:
+                    logging.info("debug:word(maybe first line)")
+        else:
+            logging.info("deug:tupple")
+            [x, y] = itemList
+            logging.info("x=" + x + ", y=" + y)
+            currentRing.AddPoint(float(x), float(y))
+    f.close()
+
+    polygon = ogr.Geometry(ogr.wkbPolygon)
+    #polygon = ogr.Geometry(ogr.wkbPolygon25D)
+    for ring in ringList:
+        polygon.AddGeometry(ring)
+    logging.info(polygon.ExportToWkt())
+
+    # Write KML
+    logging.info("Writing KML")
+    driver = ogr.GetDriverByName('KML')
+    ds = driver.CreateDataSource(inPoly + '.kml')
+    layer = ds.CreateLayer('', None, ogr.wkbPolygon)
+    # Add one attribute
+    layer.CreateField(ogr.FieldDefn('id', ogr.OFTInteger))
+    defn = layer.GetLayerDefn()
+
+    # Create a new feature 
+    feature = ogr.Feature(defn)
+
+    # Make a geometry
+    geom = ogr.CreateGeometryFromWkt(polygon.ExportToWkt())
+    feature.SetGeometry(geom)
+
+    layer.CreateFeature(feature)
+
+    # destroy
+    ds = layer = feature = geom = polygon = None
+    del ringList[:]
+ 
+
 if __name__ == '__main__':
     # Setup program usage
     usage = "Usage: %prog [options] src_datasource_name [layer]"
@@ -160,6 +219,8 @@ if __name__ == '__main__':
                       help="Set simplify tolerance in meters (default: 0).")
     parser.add_option("-f", "--field-name", dest="fieldName",
                       help="Field name to use to name files.")
+    parser.add_option("-k", "--convert-poly2kml", dest="flagPoly2kml", action="store_true",
+                      help = "Convert poly to kml.")
     parser.add_option("-v", "--verbose", dest="verbose", action="store_true",
                       help="Print detailed status messages.")
 
@@ -205,9 +266,14 @@ if __name__ == '__main__':
     if options.simplifyDistance > options.bufferDistance:
         logging.warn("Simplify distance greater than buffer distance")
 
-    if createPolys(src_datasource, options):
-        logging.info('Finished!')
-        sys.exit(0)
+    if options.flagPoly2kml:
+        createOgr(src_datasource, options)
     else:
-        logging.info('Failed!')
-        sys.exit(1)
+        if createPolys(src_datasource, options):
+            logging.info('Finished!')
+            sys.exit(0)
+        else:
+            logging.info('Failed!')
+            sys.exit(1)
+
+
