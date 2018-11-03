@@ -169,6 +169,7 @@ def createOgr(inPoly, options):
                     logging.info("debug:END line")
                 else:
                     logging.info("debug:word(maybe first line)")
+                    name = s
         else:
             logging.info("deug:tupple")
             [x, y] = itemList
@@ -187,17 +188,18 @@ def createOgr(inPoly, options):
     driver = ogr.GetDriverByName('KML')
     ds = driver.CreateDataSource(inPoly + '.kml')
     layer = ds.CreateLayer('', None, ogr.wkbPolygon)
+    # layer = ds.CreateLayer(name, None, ogr.wkbPolygon)
     # Add one attribute
-    layer.CreateField(ogr.FieldDefn('id', ogr.OFTInteger))
+    # layer.CreateField(ogr.FieldDefn('id', ogr.OFTInteger))
+    # layer.CreateField(ogr.FieldDefn('name', ogr.OFTString))
     defn = layer.GetLayerDefn()
 
     # Create a new feature 
     feature = ogr.Feature(defn)
 
-    # Make a geometry
-    geom = ogr.CreateGeometryFromWkt(polygon.ExportToWkt())
-    feature.SetGeometry(geom)
-
+    # Set a geometry
+    feature.SetGeometry(polygon)
+    feature.SetField("Name", name)
     layer.CreateFeature(feature)
 
     # destroy
