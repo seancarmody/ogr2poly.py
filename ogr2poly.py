@@ -150,38 +150,57 @@ def createPolys(inOgr, options):
 def createOgr(inPoly, options):
     logging.info("Opening OGR driver")
 
+    multipolygon = ogr.Geometry(ogr.wkbMultiPolygon)
     ringList = []
+    listPolygon = []
+    currentPolygon = None
+    currentRing = None
 
     # Read poly
     logging.info("Opening poly: '%s'" % inPoly)
-    f = open(inPoly, 'rt')
-    for row in f:
-        itemList = re.split("\s+", row.strip())
-        logging.info("itemList")
-        if(len(itemList) == 1):
-            s = itemList[0]
-            if(s.isdigit()):
-                logging.info("debug:decimal(maybe layer)")
-                currentRing = ogr.Geometry(ogr.wkbLinearRing)
-                ringList.append(currentRing)
-            else:
-                if(s == "END"):
-                    logging.info("debug:END line")
+    with open(inPoly, 'rt') as f:
+        # Get filename
+        count = 0
+        name = next(f).strip()
+        for row in f:
+            itemList = re.split("\s+", row.strip())
+            logging.info("itemList")
+            if(len(itemList) == 1):
+                s = itemList[0]
+                if(s.isdigit()):
+                    logging.info("debug:decimal(maybe polygon)")
+                    count += 1
+                    currentRing = ogr.Geometry(ogr.wkbLinearRing)
+                    # ringList.append(currentRing)
+                    modeSub = False
+                elif(re.match("^!\d+", s)):
+                    logging.info("debug:!decimal(maybe substract polygon)")
+                    count += 1
+                    currentRing = ogr.Geometry(ogr.wkbLinearRing)
+                    modeSub = True
                 else:
-                    logging.info("debug:word(maybe first line)")
-                    name = s
-        else:
-            logging.info("deug:tupple")
-            [x, y] = itemList
-            logging.info("x=" + x + ", y=" + y)
-            currentRing.AddPoint(float(x), float(y))
-    f.close()
+                    if(s == "END"):
+                        logging.info("debug:END line")
+                        if(count > 0):
+                            if(modeSub):
+                                if(currentPolygon is not None):
+                                    currentPolygon.AddGeometry(currentRing)
+                            else:
+                                currentPolygon = ogr.Geometry(ogr.wkbPolygon)
+                                currentPolygon.AddGeometry(currentRing)
+                                listPolygon.append(currentPolygon)
+                            count -= 1
 
-    multipolygon = ogr.Geometry(ogr.wkbMultiPolygon)
-    for ring in ringList:
-        polygon = ogr.Geometry(ogr.wkbPolygon)
-        polygon.AddGeometry(ring)
-        multipolygon.AddGeometry(polygon)
+                    else:
+                        logging.info("debug:word(maybe first line)")
+            else:
+                logging.info("deug:tupple")
+                [x, y] = itemList
+                logging.info("x=" + x + ", y=" + y)
+                currentRing.AddPoint(float(x), float(y))
+
+    for poly in listPolygon:
+        multipolygon.AddGeometry(poly)
     logging.info(multipolygon.ExportToWkt())
 
     # Write KML
@@ -189,17 +208,12 @@ def createOgr(inPoly, options):
     driver = ogr.GetDriverByName('KML')
     ds = driver.CreateDataSource(inPoly + '.kml')
     layer = ds.CreateLayer('', None, ogr.wkbPolygon)
-    # layer = ds.CreateLayer(name, None, ogr.wkbPolygon)
-    # Add one attribute
-    # layer.CreateField(ogr.FieldDefn('id', ogr.OFTInteger))
-    # layer.CreateField(ogr.FieldDefn('name', ogr.OFTString))
     defn = layer.GetLayerDefn()
 
     # Create a new feature 
     feature = ogr.Feature(defn)
 
     # Set a geometry
-    # feature.SetGeometry(polygon)
     feature.SetGeometry(multipolygon)
     feature.SetField("Name", name)
     layer.CreateFeature(feature)
