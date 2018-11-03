@@ -177,11 +177,12 @@ def createOgr(inPoly, options):
             currentRing.AddPoint(float(x), float(y))
     f.close()
 
-    polygon = ogr.Geometry(ogr.wkbPolygon)
-    #polygon = ogr.Geometry(ogr.wkbPolygon25D)
+    multipolygon = ogr.Geometry(ogr.wkbMultiPolygon)
     for ring in ringList:
+        polygon = ogr.Geometry(ogr.wkbPolygon)
         polygon.AddGeometry(ring)
-    logging.info(polygon.ExportToWkt())
+        multipolygon.AddGeometry(polygon)
+    logging.info(multipolygon.ExportToWkt())
 
     # Write KML
     logging.info("Writing KML")
@@ -198,7 +199,8 @@ def createOgr(inPoly, options):
     feature = ogr.Feature(defn)
 
     # Set a geometry
-    feature.SetGeometry(polygon)
+    # feature.SetGeometry(polygon)
+    feature.SetGeometry(multipolygon)
     feature.SetField("Name", name)
     layer.CreateFeature(feature)
 
