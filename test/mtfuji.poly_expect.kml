@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document id="root_doc">
+<Folder><name></name>
+  <Placemark>
+	<name>mtfuji_0</name>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <MultiGeometry><Polygon><outerBoundaryIs><LinearRing><coordinates>138.602,35.47507,0 138.5786,35.09955,0 138.6597,35.10516,0 138.7695,35.11078,0 138.8437,35.17255,0 138.8849,35.32395,0 138.8657,35.41913,0 138.8258,35.50973,0 138.7544,35.52315,0 138.6707,35.51309,0 138.602,35.47507,0</coordinates></LinearRing></outerBoundaryIs></Polygon></MultiGeometry>
+  </Placemark>
+</Folder>
+</Document></kml>
